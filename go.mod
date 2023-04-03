@@ -11,6 +11,7 @@ require (
 	github.com/gagliardetto/solana-go v1.5.0
 	github.com/hyperledger/fabric-sdk-go v1.0.0
 	github.com/novifinancial/serde-reflection/serde-generate/runtime/golang v0.0.0-20201214184956-1fd02a932898
+	github.com/resilientdb/go-resilientdb-sdk v0.0.0
 	go.uber.org/zap v1.21.0
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b

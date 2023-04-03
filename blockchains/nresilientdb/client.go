@@ -19,7 +19,6 @@ type BlockchainClient struct {
 }
 
 func newClient(logger core.Logger, client *resdb.Client, preparer transactionPreparer, confirmer transactionConfirmer) *BlockchainClient {
-	log.Printf("new client?????")
 	return &BlockchainClient{
 		logger: logger,
 		client: client,
@@ -66,7 +65,7 @@ func (this *BlockchainClient) TriggerInteraction(iact core.Interaction) error {
 
 	this.logger.Tracef("submit transaction %d", tx.getUid())
 
-	log.Printf("report txn submit")
+	//log.Printf("report txn submit")
 	iact.ReportSubmit()
 
 	this.client.SendTransaction(stx)
@@ -198,7 +197,7 @@ func (this *pollblkTransactionConfirmer) reportTransactions(uid uint64) {
 
 	this.lock.Unlock()
 
-	log.Printf("report txn commit")
+	//log.Printf("report txn commit")
 	pending.iact.ReportCommit()
 
 	this.logger.Tracef("transaction %d committed",

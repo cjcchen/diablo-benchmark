@@ -47,20 +47,14 @@ func MakeClient(ip string, port int) (c *Client, err error) {
 	return
 }
 
-func (c *Client) SendRawTransaction(rawtxn []byte) {
-  log.Printf("send raw txn")
-  return
-}
-
 func (c *Client) SendTransaction(tx *Transaction) {
-  log.Printf("send txn")
   c.channel <- 1
 
   go func(c * Client, tx *Transaction){
       var uid uint64
       var err error
 
-      log.Printf("tx done, uid %d", tx.uid)
+      //log.Printf("tx done, uid %d", tx.uid)
       uid,err = c.client.SendRawTransaction(tx.uid, tx.from, tx.to, tx.amount)
       if (uid != tx.uid || err != nil) {
         tx.committed = false
@@ -71,7 +65,7 @@ func (c *Client) SendTransaction(tx *Transaction) {
       <-c.channel
   }(c, tx)
 
-  log.Printf("send txn done")
+  //log.Printf("send txn done")
   return
 }
 
@@ -80,7 +74,7 @@ func (c *Client) WaitNextTxn() (uid uint64, err error){
 	var ok bool
 	tx, ok = <-c.done_tasks
 	if ok {
-		log.Printf("get one txn %d, status %d\n",tx.GetUid(), tx.committed)
+		//log.Printf("get one txn %d, status %d\n",tx.GetUid(), tx.committed)
     if tx.committed {
       return tx.GetUid(), nil
     } else {
