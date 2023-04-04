@@ -34,7 +34,7 @@ func MakeClient(ip string, port int) (c *Client, err error) {
 	c.pending_tasks = make(chan*resdb.Transaction, 1000000)
 	c.done_tasks = make(chan uint64, 1000000)
 
-  for i:=0; i < 50; i++ {
+  for i:=0; i < 100; i++ {
     go func(c * Client, ip string, port int){
          var client *resdb_client.TransactionClient
 
@@ -48,9 +48,9 @@ func MakeClient(ip string, port int) (c *Client, err error) {
           var ok bool
           var j int
 
-          tx_list = make([]*resdb.Transaction, 50)
+          tx_list = make([]*resdb.Transaction, 100)
           j = 0
-          innerloop : for j =0; j < 50; j++ {
+          innerloop : for j =0; j < 100; j++ {
             select {
               case tx,ok =<- c.pending_tasks:
                 if ok {
