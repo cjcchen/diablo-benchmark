@@ -31,7 +31,7 @@ func randString(n int) string {
 
 type BlockchainBuilder struct {
 	logger           core.Logger
-	client           *resdb.Client
+	client           *resdb_client.Client
 	ctx              context.Context
 	premadeAccounts  []account
 	usedAccounts     int
@@ -54,7 +54,7 @@ type contract struct {
 }
 
 
-func newBuilder(logger core.Logger, client *resdb.Client, ctx context.Context) *BlockchainBuilder {
+func newBuilder(logger core.Logger, client *resdb_client.Client, ctx context.Context) *BlockchainBuilder {
 	return &BlockchainBuilder{
 		logger: logger,
 		client: client,

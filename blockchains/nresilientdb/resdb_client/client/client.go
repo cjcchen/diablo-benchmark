@@ -1,31 +1,20 @@
-package resdb
+package resdb_client
 
 import (
 	"fmt"
 	"log"
+  "time"
 
   "github.com/resilientdb/go-resilientdb-sdk/client"
+  "github.com/resilientdb/go-resilientdb-sdk/proto"
 )
 
-type Transaction struct {
-	uid  uint64
-	from      string
-	to        string
-	amount    uint64
-	sign  []byte
-  committed bool
-}
-
-func (this *Transaction) GetUid() uint64 {
-	return this.uid
-}
-
-func MakeTransaction(uid uint64, from string, to string, amount uint64) *Transaction {
-  return &Transaction{
-		uid:uid,
-		from:from,
-		to:to,
-		amount:amount,
+func MakeTransaction(uid uint64, from string, to string, amount uint64) *resdb.Transaction {
+  return &resdb.Transaction{
+		Uid:uid,
+		From:from,
+		To:to,
+		Amount:amount,
   }
 }
 
@@ -33,54 +22,89 @@ type Client struct {
 	serverIp string
 	serverPort int
 	channel chan int
-	done_tasks chan *Transaction
-  client *resdb_client.TransactionClient
+	done_tasks chan uint64
+	pending_tasks chan*resdb.Transaction
 }
 
 
 // MakeClient is the factory for constructing a Client for a given endpoint.
 func MakeClient(ip string, port int) (c *Client, err error) {
   c = &Client{}
-  c.client = resdb_client.MakeTransactionClient(ip,port)
-	c.channel =  make(chan int, 10)
-	c.done_tasks = make(chan *Transaction, 100)
+
+	c.pending_tasks = make(chan*resdb.Transaction, 1000000)
+	c.done_tasks = make(chan uint64, 1000000)
+
+  for i:=0; i < 100; i++ {
+    go func(c * Client, ip string, port int){
+         var client *resdb_client.TransactionClient
+
+         client = resdb_client.MakeTransactionClient(ip,port)
+
+         loop :  for {
+          var tx *resdb.Transaction
+          var err error
+          var tx_list []*resdb.Transaction
+          var uids map[uint64]int32
+          var ok bool
+
+
+          //tx_list = make([]*resdb.Transaction)
+
+          for j :=0; j < 50; j++ {
+            select {
+              case tx,ok =<- c.pending_tasks:
+                if ok {
+                  tx_list = append(tx_list, tx)
+                  continue
+                } else {
+                  break loop
+                }
+              case <-time.After(time.Microsecond):
+                break
+              default:
+                break
+            }
+          }
+
+          if(len(tx_list) == 0) {
+            //log.Printf("no data ")
+            time.Sleep(time.Duration(time.Microsecond) * 100)
+            continue
+          }
+          //log.Printf("send uids:",len(tx_list))
+          uids,err = client.SendBatchTransaction(tx_list)
+          if err != nil {
+            return
+          }
+          for uid, ret := range uids {
+            //log.Printf("get uids: %d, %d\n",uid, ret)
+            if ret >=0 {
+              c.done_tasks <- uid
+            }
+          }
+        }
+
+    }(c, ip, port)
+  }
+
 	return
 }
 
-func (c *Client) SendTransaction(tx *Transaction) {
-  c.channel <- 1
 
-  go func(c * Client, tx *Transaction){
-      var uid uint64
-      var err error
 
-      //log.Printf("tx done, uid %d", tx.uid)
-      uid,err = c.client.SendRawTransaction(tx.uid, tx.from, tx.to, tx.amount)
-      if (uid != tx.uid || err != nil) {
-        tx.committed = false
-      } else {
-        tx.committed = true
-      }
-      c.done_tasks <- tx
-      <-c.channel
-  }(c, tx)
 
-  //log.Printf("send txn done")
+func (c *Client) SendTransaction(tx *resdb.Transaction) {
+  c.pending_tasks <- tx
   return
 }
 
 func (c *Client) WaitNextTxn() (uid uint64, err error){
-	var tx *Transaction
+	var tx uint64
 	var ok bool
 	tx, ok = <-c.done_tasks
 	if ok {
-		//log.Printf("get one txn %d, status %d\n",tx.GetUid(), tx.committed)
-    if tx.committed {
-      return tx.GetUid(), nil
-    } else {
-      log.Printf("get one txn fail\n")
-      return tx.GetUid(), fmt.Errorf("submit txn fail")
-    }
+		//log.Printf("get one txn %d\n",tx)
+    return tx, nil
 	} else {
 		log.Printf("get one txn fail\n")
 		return 0, fmt.Errorf("get txn fail")

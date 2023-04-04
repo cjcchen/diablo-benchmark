@@ -8,17 +8,18 @@ import (
 	"sync"
 	"log"
 	"diablo-benchmark/blockchains/nresilientdb/resdb_client/client"
+  "github.com/resilientdb/go-resilientdb-sdk/proto"
 )
 
 
 type BlockchainClient struct {
 	logger     core.Logger
-	client    *resdb.Client
+	client    *resdb_client.Client
 	preparer   transactionPreparer
 	confirmer  transactionConfirmer
 }
 
-func newClient(logger core.Logger, client *resdb.Client, preparer transactionPreparer, confirmer transactionConfirmer) *BlockchainClient {
+func newClient(logger core.Logger, client *resdb_client.Client, preparer transactionPreparer, confirmer transactionConfirmer) *BlockchainClient {
 	return &BlockchainClient{
 		logger: logger,
 		client: client,
@@ -123,7 +124,7 @@ type transactionConfirmer interface {
 
 type pollblkTransactionConfirmer struct {
 	logger    core.Logger
-	client    *resdb.Client
+	client    *resdb_client.Client
 	ctx       context.Context
 	err       error
 	lock      sync.Mutex
@@ -135,7 +136,7 @@ type pollblkTransactionConfirmerPending struct {
 	iact     core.Interaction
 }
 
-func newPollblkTransactionConfirmer(logger core.Logger, client *resdb.Client, ctx context.Context) *pollblkTransactionConfirmer {
+func newPollblkTransactionConfirmer(logger core.Logger, client *resdb_client.Client, ctx context.Context) *pollblkTransactionConfirmer {
 	var this pollblkTransactionConfirmer
 
 	this.logger = logger
@@ -238,7 +239,7 @@ func (this *pollblkTransactionConfirmer) flushPendings(err error) {
 }
 
 func (this *pollblkTransactionConfirmer) run() {
-	var client *resdb.Client = this.client
+	var client *resdb_client.Client = this.client
 	var uid uint64
 	var err error
 

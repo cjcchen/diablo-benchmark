@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 
+  "github.com/resilientdb/go-resilientdb-sdk/proto"
 	"diablo-benchmark/blockchains/nresilientdb/resdb_client/client"
 )
 
@@ -125,7 +126,7 @@ type unsignedTransaction struct {
 
 func newUnsignedTransaction(uid uint64, from string, to string, amount uint64) *unsignedTransaction {
 	return &unsignedTransaction{
-			tx: resdb.MakeTransaction(
+			tx: resdb_client.MakeTransaction(
 			uid,
 			from,
 			to,

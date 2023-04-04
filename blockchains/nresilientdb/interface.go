@@ -101,7 +101,7 @@ type yamlAccount struct {
 func (this *BlockchainInterface) Client(params map[string]string, env, view []string, logger core.Logger) (core.BlockchainClient, error) {
 	var confirmer transactionConfirmer
 	var preparer transactionPreparer
-	var client *resdb.Client
+	var client *resdb_client.Client
   var client_ip string
   var client_port int
 	var ctx context.Context
@@ -148,7 +148,7 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
 	}
 
 	log.Printf("make client: %s:%d", client_ip, client_port)
-  client, err = resdb.MakeClient(client_ip,client_port)
+  client, err = resdb_client.MakeClient(client_ip,client_port)
 	if err != nil {
 		return nil, err
 	}
@@ -158,11 +158,11 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
 	return newClient(logger, client, preparer, confirmer), nil
 }
 
-func parseConfirm(value string, logger core.Logger, client *resdb.Client, ctx context.Context) (transactionConfirmer, error) {
+func parseConfirm(value string, logger core.Logger, client *resdb_client.Client, ctx context.Context) (transactionConfirmer, error) {
 	return newPollblkTransactionConfirmer(logger, client, ctx), nil
 }
 
-func parsePrepare(value string, logger core.Logger, client *resdb.Client) (transactionPreparer, error) {
+func parsePrepare(value string, logger core.Logger, client *resdb_client.Client) (transactionPreparer, error) {
 	var preparer transactionPreparer
 
 	if value == "nothing" {
