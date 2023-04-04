@@ -7,6 +7,7 @@ import (
 	"sort"
 	"sync"
 	"time"
+  //"log"
 )
 
 
@@ -137,7 +138,7 @@ func (this *runtime) run() error {
 		return err
 	}
 
-	Infof("run benchmark for %.3f seconds", msg.duration)
+	Infof("run benchmark for %.3f seconds,, total txn %d", msg.duration, len(this.interactions))
 	this.start = time.Now()
 	this.lastSkewWarn = this.start
 	this.lastDelayWarn = this.start
@@ -496,6 +497,8 @@ func (this *runtimeInteraction) ReportSubmit() {
 
 	rt = this.runtime()
 	delay = submitTime.Sub(rt.start).Seconds() - this.schedTime
+  //log.Println("submit delay")
+  //log.Println(delay)
 
 	if delay >= rt.params.maxDelay {
 		rt.warnDelay(this, delay)

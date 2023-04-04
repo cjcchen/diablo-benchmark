@@ -245,12 +245,17 @@ func (this *pollblkTransactionConfirmer) run() {
 
 	loop: for {
     uid, err = client.WaitNextTxn()
-    if err != nil {
-        break loop
-    }
+      if err != nil {
+        log.Printf("get uid %d err %s\n",uid, err)
+          if this.ctx.Err() != nil {
+            break loop
+          }
+          continue
+      }
     this.reportTransactions(uid)
 	}
 
-	this.flushPendings(err)
+  this.flushPendings(err)
+
 }
 
