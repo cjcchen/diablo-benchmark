@@ -8,6 +8,7 @@ import (
 	"diablo-benchmark/blockchains/nethereum"
 	"diablo-benchmark/blockchains/nsolana"
 	"diablo-benchmark/blockchains/nresilientdb"
+	"diablo-benchmark/blockchains/nresilientdb_poc"
 	"diablo-benchmark/core"
 	"encoding/json"
 	"fmt"
@@ -43,6 +44,7 @@ func buildSystemMap() map[string]core.BlockchainInterface {
 		"ethereum": &nethereum.BlockchainInterface{},
 		"solana":   &nsolana.BlockchainInterface{},
 		"resilientdb":     &nresilientdb.BlockchainInterface{},
+		"resilientdb-poc":     &nresilientdb_poc.BlockchainInterface{},
 		"mock":     &mock.BlockchainInterface{},
 	}
 }
