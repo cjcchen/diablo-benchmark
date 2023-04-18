@@ -46,7 +46,7 @@ import (
 	"strings"
 	"log"
 
-	"diablo-benchmark/blockchains/nresilientdb/resdb_client/client"
+	"diablo-benchmark/blockchains/nresilientdb_poc/resdb_client/client"
 )
 
 
@@ -113,7 +113,7 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
 	logger.Tracef("new client")
 
 	for key, value = range params {
-		log.Printf("get key %s value %s\n",key,value)
+		log.Printf("get txn key %s value %s\n",key,value)
 		if key == "prepare" {
 			logger.Tracef("use prepare method '%s'", value)
 			preparer, err =

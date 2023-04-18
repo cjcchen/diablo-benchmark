@@ -9,7 +9,7 @@ import (
 	"log"
 
   "github.com/resilientdb/go-resilientdb-sdk/proto"
-	"diablo-benchmark/blockchains/nresilientdb/resdb_client/client"
+	"diablo-benchmark/blockchains/nresilientdb_poc/resdb_client/client"
 )
 
 

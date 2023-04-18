@@ -7,7 +7,7 @@ import (
 	"diablo-benchmark/core"
 	"sync"
 	"log"
-	"diablo-benchmark/blockchains/nresilientdb/resdb_client/client"
+	"diablo-benchmark/blockchains/nresilientdb_poc/resdb_client/client"
   "github.com/resilientdb/go-resilientdb-sdk/proto"
 )
 

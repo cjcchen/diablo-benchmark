@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"golang.org/x/crypto/ed25519"
-	"diablo-benchmark/blockchains/nresilientdb/resdb_client/client"
+	"diablo-benchmark/blockchains/nresilientdb_poc/resdb_client/client"
 )
 
 
