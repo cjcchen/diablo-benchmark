@@ -161,8 +161,8 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
 		preparer = newSignatureTransactionPreparer(logger)
 	}
 
-  poc_client_ip = "172.31.22.214"
-  poc_client_port = 30007
+  //poc_client_ip = "172.31.22.214"
+  //poc_client_port = 30007
 
 	log.Printf("make client: %s:%d", client_ip, client_port)
 	log.Printf("make poc client: %s:%d", poc_client_ip, poc_client_port)
