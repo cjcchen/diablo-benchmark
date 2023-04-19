@@ -103,11 +103,11 @@ func (c *Client) WaitUids() (uids map[uint64]int32, err error){
   var j int
   var ok bool
   var uid uint64
-  //log.Printf("has fail task %d\n",c.fail_task == nil || len(c.fail_task) == 0);
+  max_len := 1000
 
-  if(c.fail_task == nil || len(c.fail_task) < 100){
-    req_uids = make([]uint64, 100)
-      innerloop : for j =0; j < 10; j++ {
+  if(c.fail_task == nil || len(c.fail_task) < max_len){
+    req_uids = make([]uint64, max_len)
+      innerloop : for j =0; j < max_len; j++ {
         select {
           case  uid, ok = <-c.done_tasks:
             if ok {
@@ -138,11 +138,23 @@ func (c *Client) WaitUids() (uids map[uint64]int32, err error){
   }
   resp_uids, err = c.poc_client.Query(req_uids)
   if (resp_uids == nil || len(resp_uids) == 0 ){
-    time.Sleep(time.Microsecond*500)
+    time.Sleep(time.Microsecond*100000)
     c.fail_task = req_uids
   } else {
-    //log.Printf("get resp:",resp_uids)
-    c.fail_task = nil
+    c.fail_task = make([]uint64, len(req_uids))
+    var idx int
+    idx = 0
+
+    for _, uid := range req_uids {
+      if _, ok := resp_uids[uid]; ok {
+      } else {
+        c.fail_task[idx] = uid
+        idx+=1
+      }
+    }
+    c.fail_task = c.fail_task[0:idx]
+
+    //log.Printf("get resp: tot %d tail %d",len(req_uids), len(c.fail_task))
   }
   return resp_uids, err
 }
