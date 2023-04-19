@@ -240,19 +240,27 @@ func (this *pollblkTransactionConfirmer) flushPendings(err error) {
 
 func (this *pollblkTransactionConfirmer) run() {
 	var client *resdb_client.Client = this.client
-	var uid uint64
+	var uids map[uint64]int32
 	var err error
 
 	loop: for {
-    uid, err = client.WaitNextTxn()
+    uids, err = client.WaitUids()
       if err != nil {
-        log.Printf("get uid %d err %s\n",uid, err)
+        log.Printf("get uid err %s\n",err)
           if this.ctx.Err() != nil {
             break loop
           }
           continue
       }
-    this.reportTransactions(uid)
+      if(uids == nil){
+        //log.Printf("no uid")
+        continue
+      }
+
+    for uid, _:= range uids {
+      //log.Printf("get uid : %d\n",uid)
+      this.reportTransactions(uid)
+    }
 	}
 
   this.flushPendings(err)

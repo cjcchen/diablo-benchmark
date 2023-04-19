@@ -104,6 +104,8 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
 	var client *resdb_client.Client
   var client_ip string
   var client_port int
+  var poc_client_ip string
+  var poc_client_port int
 	var ctx context.Context
 	var key, value string
 	var err error
@@ -127,6 +129,10 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
       client_ip = value
       continue
     }
+    if key ==  "poc_client_ip" {
+      poc_client_ip = value
+      continue
+    }
     if key == "client_port" {
       client_port, err = strconv.Atoi(value)
       if err != nil {
@@ -134,6 +140,14 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
       }
       continue
     }
+    if key == "poc_client_port" {
+      poc_client_port, err = strconv.Atoi(value)
+      if err != nil {
+        return nil, fmt.Errorf("convert port fail")
+      }
+      continue
+    }
+
 
 		return nil, fmt.Errorf("unknown parameter '%s'", key)
 	}
@@ -147,8 +161,12 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
 		preparer = newSignatureTransactionPreparer(logger)
 	}
 
+  poc_client_ip = "172.31.22.214"
+  poc_client_port = 30007
+
 	log.Printf("make client: %s:%d", client_ip, client_port)
-  client, err = resdb_client.MakeClient(client_ip,client_port)
+	log.Printf("make poc client: %s:%d", poc_client_ip, poc_client_port)
+  client, err = resdb_client.MakeClient(client_ip,client_port, poc_client_ip, poc_client_port)
 	if err != nil {
 		return nil, err
 	}
