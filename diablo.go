@@ -45,6 +45,7 @@ func buildSystemMap() map[string]core.BlockchainInterface {
 		"solana":   &nsolana.BlockchainInterface{},
 		"resilientdb":     &nresilientdb.BlockchainInterface{},
 		"resilientdb-poc":     &nresilientdb_poc.BlockchainInterface{},
+		"diem-poc":     &ndiem.BlockchainInterface{},
 		"mock":     &mock.BlockchainInterface{},
 	}
 }
