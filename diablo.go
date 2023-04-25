@@ -5,6 +5,7 @@ import (
 	"diablo-benchmark/blockchains/mock"
 	"diablo-benchmark/blockchains/nalgorand"
 	"diablo-benchmark/blockchains/ndiem"
+	"diablo-benchmark/blockchains/ndiem_poc"
 	"diablo-benchmark/blockchains/nethereum"
 	"diablo-benchmark/blockchains/nsolana"
 	"diablo-benchmark/blockchains/nresilientdb"
@@ -45,7 +46,7 @@ func buildSystemMap() map[string]core.BlockchainInterface {
 		"solana":   &nsolana.BlockchainInterface{},
 		"resilientdb":     &nresilientdb.BlockchainInterface{},
 		"resilientdb-poc":     &nresilientdb_poc.BlockchainInterface{},
-		"diem-poc":     &ndiem.BlockchainInterface{},
+		"diem-poc":     &ndiem_poc.BlockchainInterface{},
 		"mock":     &mock.BlockchainInterface{},
 	}
 }
