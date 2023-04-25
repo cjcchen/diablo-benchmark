@@ -1,4 +1,4 @@
-package ndiem
+package ndiem_poc
 
 import (
 	"context"
