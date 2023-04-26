@@ -4,6 +4,7 @@ import (
 	"context"
 	"diablo-benchmark/core"
 	"encoding/hex"
+  "strconv"
 	"fmt"
 	"io"
 	"os"
@@ -16,6 +17,7 @@ import (
 	"github.com/diem/client-sdk-go/diemclient"
 	"github.com/diem/client-sdk-go/diemkeys"
 	"github.com/novifinancial/serde-reflection/serde-generate/runtime/golang/bcs"
+	"diablo-benchmark/blockchains/ndiem_poc/resdb_client/client"
 )
 
 const chainId = 4
@@ -222,6 +224,9 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
 	var confirmer transactionConfirmer
 	var preparer transactionPreparer
 	var client diemclient.Client
+  var poc_client_ip string
+  var poc_client_port int
+  var poc_client *diem_poc_client.Client
 	var key, value string
 	var err error
 
@@ -233,7 +238,6 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
 	for key, value = range params {
 		if key == "confirm" {
 			logger.Tracef("use confirm method '%s'", value)
-			confirmer, err = parseConfirm(value, logger, client)
 			if err != nil {
 				return nil, err
 			}
@@ -248,14 +252,23 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
 			}
 			continue
 		}
-
+    if key ==  "poc_client_ip" {
+      poc_client_ip = value
+      continue
+    }
+    if key == "poc_client_port" {
+      poc_client_port, err = strconv.Atoi(value)
+      if err != nil {
+        return nil, fmt.Errorf("convert port fail")
+      }
+      continue
+    }
 		return nil, fmt.Errorf("unknown parameter '%s'", key)
 	}
 
-	if confirmer == nil {
-		logger.Tracef("use default confirm method 'polltx'")
-		confirmer = newPolltxTransactionConfirmer(logger, client)
-	}
+  poc_client, err = diem_poc_client.MakeClient(poc_client_ip, poc_client_port)
+
+	confirmer = newPollblkTransactionConfirmer(logger, client, poc_client)
 
 	if preparer == nil {
 		logger.Tracef("use default prepare method 'signature'")
@@ -265,13 +278,13 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
 	return newClient(logger, client, preparer, confirmer), nil
 }
 
-func parseConfirm(value string, logger core.Logger, client diemclient.Client) (transactionConfirmer, error) {
+func parseConfirm(value string, logger core.Logger, client diemclient.Client, poc_client * diem_poc_client.Client) (transactionConfirmer, error) {
 	if value == "polltx" {
 		return newPolltxTransactionConfirmer(logger, client), nil
 	}
 
 	if value == "pollblk" {
-		return newPollblkTransactionConfirmer(logger, client), nil
+		return newPollblkTransactionConfirmer(logger, client, poc_client), nil
 	}
 
 	return nil, fmt.Errorf("unknown confirm method '%s'", value)

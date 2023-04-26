@@ -6,11 +6,13 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sync"
+  "log"
 	"time"
 
 	"github.com/diem/client-sdk-go/diemclient"
 	"github.com/diem/client-sdk-go/diemjsonrpctypes"
 	"github.com/diem/client-sdk-go/diemtypes"
+	"diablo-benchmark/blockchains/ndiem_poc/resdb_client/client"
 )
 
 type BlockchainClient struct {
@@ -174,6 +176,7 @@ type pollblkTransactionConfirmer struct {
 	err      error
 	lock     sync.Mutex
 	pendings map[pollblkTransactionConfirmerKey]*pollblkTransactionConfirmerPending
+  poc_client *diem_poc_client.Client
 }
 
 type pollblkTransactionConfirmerKey struct {
@@ -186,13 +189,14 @@ type pollblkTransactionConfirmerPending struct {
 	iact    core.Interaction
 }
 
-func newPollblkTransactionConfirmer(logger core.Logger, client diemclient.Client) *pollblkTransactionConfirmer {
+func newPollblkTransactionConfirmer(logger core.Logger, client diemclient.Client, poc_client *diem_poc_client.Client) *pollblkTransactionConfirmer {
 	var this pollblkTransactionConfirmer
 
 	this.logger = logger
 	this.client = client
 	this.err = nil
 	this.pendings = make(map[pollblkTransactionConfirmerKey]*pollblkTransactionConfirmerPending)
+  this.poc_client = poc_client
 
 	go this.run()
 
@@ -311,6 +315,10 @@ func (this *pollblkTransactionConfirmer) run() {
 	var meta *diemjsonrpctypes.Metadata
 	var v, version uint64
 	var err error
+  var uid_list []uint64
+  var resp_list map[uint64]int32
+  var i int
+  var ok bool
 
 	meta, err = this.client.GetMetadata()
 	if err != nil {
@@ -337,7 +345,25 @@ func (this *pollblkTransactionConfirmer) run() {
 				continue
 			}
 
+      uid_list = make([]uint64, len(txs))
+			for i, tx = range txs {
+        uid_list[i] = tx.Version
+      }
+      resp_list, err = this.poc_client.WaitUids(uid_list)
+      log.Printf("uid_lists:",uid_list)
+      log.Printf("get uid_lists:",resp_list)
+      if (err != nil) {
+        v = v-1
+        continue
+      }
+
 			for _, tx = range txs {
+        _, ok = resp_list[tx.Version];
+        if(!ok) {
+          v = tx.Version-1
+          break
+        }
+
 				if tx.Version > v {
 					v = tx.Version
 				}
