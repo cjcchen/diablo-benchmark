@@ -296,6 +296,7 @@ func (this *pollblkTransactionConfirmer) parseTransaction(tx *diemjsonrpctypes.T
 	this.lock.Unlock()
 
 	if !ok {
+    log.Print("txn not exist")
 		return
 	}
 
@@ -303,6 +304,10 @@ func (this *pollblkTransactionConfirmer) parseTransaction(tx *diemjsonrpctypes.T
 
 	this.logger.Tracef("transaction %s committed",
 		pending.iact.Payload().(transaction).getName())
+  //log.Printf("get versioin", tx.Version)
+  //log.Printf("get sender:",tx.Transaction.Sender)
+  //log.Printf("get seq:",tx.Transaction.SequenceNumber)
+  //log.Printf("get tx:",tx)
 
 	pending.channel <- nil
 
@@ -316,9 +321,12 @@ func (this *pollblkTransactionConfirmer) run() {
 	var v, version uint64
 	var err error
   var uid_list []uint64
+  var fail_list []*diemjsonrpctypes.Transaction
   var resp_list map[uint64]int32
-  var i int
   var ok bool
+
+  fail_list = nil
+  resp_list=make(map[uint64]int32)
 
 	meta, err = this.client.GetMetadata()
 	if err != nil {
@@ -327,6 +335,7 @@ func (this *pollblkTransactionConfirmer) run() {
 	}
 
 	v = meta.Version
+ // log.Printf("get meta v:",v)
 
 	for {
 		meta, err = this.client.GetMetadata()
@@ -340,30 +349,47 @@ func (this *pollblkTransactionConfirmer) run() {
 		for v < version {
 			v += 1
 
-			txs, err = this.client.GetTransactions(v, 10, true)
+			txs, err = this.client.GetTransactions(v, 100, true)
 			if err != nil {
 				continue
 			}
 
+      //log.Printf("fail list:",len(fail_list))
+      txs = append(txs, fail_list...)
+      log.Print("get txs:",len(txs))
+
       uid_list = make([]uint64, len(txs))
-			for i, tx = range txs {
-        uid_list[i] = tx.Version
+      idx := 0
+			for _, tx = range txs {
+				if tx.Transaction.Type != "user" {
+					continue
+				}
+        uid_list[idx] = tx.Version
+        idx=idx+1
       }
-      resp_list, err = this.poc_client.WaitUids(uid_list)
-      log.Printf("uid_lists:",uid_list)
-      log.Printf("get uid_lists:",resp_list)
-      if (err != nil) {
-        v = v-1
-        continue
+
+      //log.Printf("uid_lists:",uid_list)
+
+      if (len(uid_list) > 0) {
+        resp_list, err = this.poc_client.WaitUids(uid_list)
+          if (err != nil) {
+            log.Print("fail")
+            time.Sleep(time.Second)
+            v = v-1
+            continue
+          }
       }
+
+      if (len(resp_list)==0) {
+            time.Sleep(time.Second)
+            v = v-1
+            continue
+      }
+
+      log.Printf("get uid_lists:",len(uid_list), len(resp_list))
+      fail_list = nil
 
 			for _, tx = range txs {
-        _, ok = resp_list[tx.Version];
-        if(!ok) {
-          v = tx.Version-1
-          break
-        }
-
 				if tx.Version > v {
 					v = tx.Version
 				}
@@ -371,7 +397,13 @@ func (this *pollblkTransactionConfirmer) run() {
 				if tx.Transaction.Type != "user" {
 					continue
 				}
-
+        _, ok = resp_list[tx.Version];
+        if(!ok) {
+          fail_list = append(fail_list, tx)
+          continue
+        }
+        //log.Printf("find version:",tx.Version)
+        //log.Printf("ok:",ok)
 				this.parseTransaction(tx)
 			}
 		}

@@ -7,6 +7,7 @@ import (
   "strconv"
 	"fmt"
 	"io"
+  "log"
 	"os"
 	"os/exec"
 	"strings"
@@ -49,6 +50,9 @@ func (this *BlockchainInterface) Builder(params map[string]string, env []string,
 
 	logger.Debugf("use endpoint '%s'", endpoint)
 	client = diemclient.New(chainId, "http://"+endpoint)
+
+  log.Print("123 use endpint :","http://"+endpoint)
+  log.Print("123 chanid:",chainId)
 
 	mintkey, ok = params["mintkey"]
 	if !ok {
@@ -234,6 +238,8 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
 
 	logger.Tracef("use endpoint '%s'", view[0])
 	client = diemclient.New(chainId, "http://"+view[0])
+  log.Print("use endpint :","http://"+view[0])
+  log.Print("chanid:",chainId)
 
 	for key, value = range params {
 		if key == "confirm" {
@@ -265,6 +271,8 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
     }
 		return nil, fmt.Errorf("unknown parameter '%s'", key)
 	}
+
+  log.Print("poc ip: :",poc_client_ip, "port:",poc_client_port)
 
   poc_client, err = diem_poc_client.MakeClient(poc_client_ip, poc_client_port)
 
