@@ -349,14 +349,14 @@ func (this *pollblkTransactionConfirmer) run() {
 		for v < version {
 			v += 1
 
-			txs, err = this.client.GetTransactions(v, 10, true)
+			txs, err = this.client.GetTransactions(v, 100, true)
 			if err != nil {
 				continue
 			}
 
+      //log.Print("get txn:",len(txs))
       //log.Printf("fail list:",len(fail_list))
       txs = append(txs, fail_list...)
-      log.Print("get txs:",len(txs))
 
       uid_list = make([]uint64, len(txs))
       idx := 0
@@ -367,11 +367,13 @@ func (this *pollblkTransactionConfirmer) run() {
         uid_list[idx] = tx.Version
         idx=idx+1
       }
+      uid_list = uid_list[:idx]
 
-      //log.Printf("uid_lists:",uid_list)
 
       if (len(uid_list) > 0) {
+        //log.Printf("uid_lists:",uid_list)
         resp_list, err = this.poc_client.WaitUids(uid_list)
+        //log.Printf("resp_lists:",resp_list)
           if (err != nil) {
             log.Print("fail")
             time.Sleep(time.Second)
