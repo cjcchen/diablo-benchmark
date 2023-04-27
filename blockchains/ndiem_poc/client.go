@@ -349,7 +349,7 @@ func (this *pollblkTransactionConfirmer) run() {
 		for v < version {
 			v += 1
 
-			txs, err = this.client.GetTransactions(v, 100, true)
+			txs, err = this.client.GetTransactions(v, 10, true)
 			if err != nil {
 				continue
 			}

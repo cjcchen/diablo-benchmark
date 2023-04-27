@@ -6,10 +6,13 @@ import (
 	"context"
 	"diablo-benchmark/core"
 	"sync"
+  "log"
+  "time"
 
 	"github.com/algorand/go-algorand-sdk/client/v2/algod"
 	"github.com/algorand/go-algorand-sdk/client/v2/common/models"
 	"github.com/algorand/go-algorand-sdk/types"
+	"diablo-benchmark/blockchains/nalgorand_poc/resdb_client/client"
 )
 
 
@@ -204,6 +207,7 @@ func (this *polltxTransactionConfirmer) waitNextRound(round *uint64) error {
 type pollblkTransactionConfirmer struct {
 	logger    core.Logger
 	client    *algod.Client
+  poc_client *algorand_poc_client.Client
 	ctx       context.Context
 	err       error
 	lock      sync.Mutex
@@ -215,7 +219,7 @@ type pollblkTransactionConfirmerPending struct {
 	iact     core.Interaction
 }
 
-func newPollblkTransactionConfirmer(logger core.Logger, client *algod.Client, ctx context.Context) *pollblkTransactionConfirmer {
+func newPollblkTransactionConfirmer(logger core.Logger, client *algod.Client, poc_client *algorand_poc_client.Client, ctx context.Context) *pollblkTransactionConfirmer {
 	var this pollblkTransactionConfirmer
 
 	this.logger = logger
@@ -223,6 +227,7 @@ func newPollblkTransactionConfirmer(logger core.Logger, client *algod.Client, ct
 	this.ctx = ctx
 	this.err = nil
 	this.pendings = make(map[uint64]*pollblkTransactionConfirmerPending)
+  this.poc_client = poc_client
 
 	go this.run()
 
@@ -348,10 +353,15 @@ func (this *pollblkTransactionConfirmer) flushPendings(err error) {
 func (this *pollblkTransactionConfirmer) run() {
 	var client *algod.Client = this.client
 	var uids []uint64 = make([]uint64, 0)
+	var fail_list []uint64 = make([]uint64, 0)
+	var done_list []uint64 = make([]uint64, 0)
+	var resp_list map[uint64]int32
 	var status models.NodeStatus
 	var block types.Block
 	var round uint64
 	var err error
+  var uid uint64
+  var ok bool
 
 	status, err = client.Status().Do(this.ctx)
 	if err != nil {
@@ -361,7 +371,6 @@ func (this *pollblkTransactionConfirmer) run() {
 
 	round = status.LastRound + 1
 	this.logger.Tracef("start polling block at round %d", round)
-
 	loop: for {
 		status, err = client.StatusAfterBlock(round).Do(this.ctx)
 		if err != nil {
@@ -390,7 +399,32 @@ func (this *pollblkTransactionConfirmer) run() {
 			round += 1
 		}
 
-		this.reportTransactions(uids)
+    uids = append(uids, fail_list...)
+    if (len(uids) > 0) {
+        resp_list, err = this.poc_client.WaitUids(uids)
+        log.Print("get uids:",uids)
+        log.Print("get resp:",resp_list)
+        if (err != nil) {
+            log.Print("fail")
+            time.Sleep(time.Second)
+            fail_list = uids
+            continue
+        }
+        fail_list = fail_list[:0]
+        done_list = make([]uint64,0)
+        for _, uid = range uids {
+          _, ok = resp_list[uid]
+          if(ok) {
+            done_list = append(done_list,uid)
+          } else {
+            fail_list = append(fail_list, uid)
+          }
+        }
+
+      if(len(done_list)>0){
+        this.reportTransactions(done_list)
+      }
+    }
 	}
 
 	this.flushPendings(err)

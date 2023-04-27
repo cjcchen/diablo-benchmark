@@ -38,6 +38,7 @@ package nalgorand
 import (
 	"context"
 	"diablo-benchmark/core"
+  "log"
 	"fmt"
 	"golang.org/x/crypto/ed25519"
 	"gopkg.in/yaml.v3"
@@ -205,6 +206,7 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
 	if err != nil {
 		return nil, err
 	}
+  log.Print("endpoint :",view[0])
 
 	for key, value = range params {
 		if key == "confirm" {

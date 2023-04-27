@@ -38,7 +38,9 @@ package nalgorand_poc
 import (
 	"context"
 	"diablo-benchmark/core"
+  "log"
 	"fmt"
+  "strconv"
 	"golang.org/x/crypto/ed25519"
 	"gopkg.in/yaml.v3"
 	"os"
@@ -46,6 +48,7 @@ import (
 
 	"github.com/algorand/go-algorand-sdk/client/v2/algod"
 	"github.com/algorand/go-algorand-sdk/mnemonic"
+	"diablo-benchmark/blockchains/nalgorand_poc/resdb_client/client"
 )
 
 
@@ -192,6 +195,9 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
 	var preparer transactionPreparer
 	var provider parameterProvider
 	var client *algod.Client
+  var poc_client_ip string
+  var poc_client_port int
+  var poc_client *algorand_poc_client.Client
 	var ctx context.Context
 	var key, value string
 	var err error
@@ -205,14 +211,10 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
 	if err != nil {
 		return nil, err
 	}
+  log.Print("use endpoint:",view[0])
 
 	for key, value = range params {
 		if key == "confirm" {
-			logger.Tracef("use confirm method '%s'", value)
-			confirmer, err = parseConfirm(value, logger,client,ctx)
-			if err != nil {
-				return nil, err
-			}
 			continue
 		}
 
@@ -226,8 +228,33 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
 			continue
 		}
 
+    if key ==  "poc_client_ip" {
+      poc_client_ip = value
+      continue
+    }
+    if key == "poc_client_port" {
+      poc_client_port, err = strconv.Atoi(value)
+      if err != nil {
+        return nil, fmt.Errorf("convert port fail")
+      }
+      continue
+    }
+
+
 		return nil, fmt.Errorf("unknown parameter '%s'", key)
 	}
+
+  log.Print("get poc ip %s, port %s", poc_client_ip, poc_client_port)
+
+  poc_client, err = algorand_poc_client.MakeClient(poc_client_ip, poc_client_port)
+  if( err != nil ){
+    return nil, err
+  }
+
+  confirmer, err = newPollblkTransactionConfirmer(logger, client, poc_client, ctx), nil
+  if( err != nil ){
+    return nil, err
+  }
 
 	if confirmer == nil {
 		logger.Tracef("use default confirm method 'polltx'")
@@ -251,10 +278,6 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
 func parseConfirm(value string, logger core.Logger, client *algod.Client, ctx context.Context) (transactionConfirmer, error) {
 	if value == "polltx" {
 		return newPolltxTransactionConfirmer(logger, client, ctx), nil
-	}
-
-	if value == "pollblk" {
-		return newPollblkTransactionConfirmer(logger, client, ctx), nil
 	}
 
 	return nil, fmt.Errorf("unknown confirm method '%s'", value)
