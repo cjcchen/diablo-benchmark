@@ -277,7 +277,6 @@ func (this *pollblkTransactionConfirmer) parseBlock(dest []uint64, block types.B
 		if !ok {
 			continue
 		}
-
 		dest = append(dest, uid)
 	}
 
@@ -353,15 +352,12 @@ func (this *pollblkTransactionConfirmer) flushPendings(err error) {
 func (this *pollblkTransactionConfirmer) run() {
 	var client *algod.Client = this.client
 	var uids []uint64 = make([]uint64, 0)
-	var fail_list []uint64 = make([]uint64, 0)
-	var done_list []uint64 = make([]uint64, 0)
+	var uuids []uint64 = make([]uint64, 0)
 	var resp_list map[uint64]int32
 	var status models.NodeStatus
 	var block types.Block
 	var round uint64
 	var err error
-  var uid uint64
-  var ok bool
 
 	status, err = client.Status().Do(this.ctx)
 	if err != nil {
@@ -381,7 +377,7 @@ func (this *pollblkTransactionConfirmer) run() {
 
 		for round < status.LastRound {
 			this.logger.Tracef("poll block for round %d", round)
-
+      log.Print("get round:",round," last round:",status.LastRound)
 			block, err = client.Block(round).Do(this.ctx)
 			if err != nil {
 				if this.ctx.Err() != nil {
@@ -394,37 +390,22 @@ func (this *pollblkTransactionConfirmer) run() {
 				continue
 			}
 
+      uuids = make([]uint64,1)
+      uuids[0] = round
+      inloop :  for {
+        resp_list, _ = this.poc_client.WaitUids(uuids)
+        log.Print("uuid :",uuids," resp:",resp_list)
+        if len(resp_list) > 0 {
+          break inloop
+        }
+        time.Sleep(time.Second)
+      }
+
 			uids = this.parseBlock(uids, block)
 
 			round += 1
 		}
-
-    uids = append(uids, fail_list...)
-    if (len(uids) > 0) {
-        resp_list, err = this.poc_client.WaitUids(uids)
-        log.Print("get uids:",uids)
-        log.Print("get resp:",resp_list)
-        if (err != nil) {
-            log.Print("fail")
-            time.Sleep(time.Second)
-            fail_list = uids
-            continue
-        }
-        fail_list = fail_list[:0]
-        done_list = make([]uint64,0)
-        for _, uid = range uids {
-          _, ok = resp_list[uid]
-          if(ok) {
-            done_list = append(done_list,uid)
-          } else {
-            fail_list = append(fail_list, uid)
-          }
-        }
-
-      if(len(done_list)>0){
-        this.reportTransactions(done_list)
-      }
-    }
+    this.reportTransactions(uids)
 	}
 
 	this.flushPendings(err)
