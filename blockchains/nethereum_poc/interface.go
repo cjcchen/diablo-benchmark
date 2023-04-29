@@ -6,12 +6,15 @@ import (
 	"crypto/ecdsa"
 	"diablo-benchmark/core"
 	"encoding/hex"
+  "log"
 	"fmt"
 	"os"
 	"strings"
+  "strconv"
 
 	"gopkg.in/yaml.v3"
 
+	"diablo-benchmark/blockchains/nethereum_poc/resdb_client/client"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -72,8 +75,11 @@ func (this *BlockchainInterface) Builder(params map[string]string, env []string,
 			continue
 		}
 
+  
 		return nil, fmt.Errorf("unknown environment key '%s'", key)
 	}
+
+
 
 	return builder, nil
 }
@@ -170,6 +176,9 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
 	var preparer transactionPreparer
 	var provider parameterProvider
 	var client *ethclient.Client
+  var poc_client *eth_poc_client.Client
+  var poc_client_ip string
+  var poc_client_port int
 	var manager nonceManager
 	var key, value string
 	var err error
@@ -181,6 +190,7 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
 	if err != nil {
 		return nil, err
 	}
+  log.Print("use endpoint:",view[0])
 
 	for key, value = range params {
 		if key == "prepare" {
@@ -192,6 +202,21 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
 			}
 			continue
 		}
+
+    if key ==  "poc_client_ip" {
+      poc_client_ip = value
+      continue
+    }
+
+    if key == "poc_client_port" {
+      poc_client_port, err = strconv.Atoi(value)
+      if err != nil {
+        return nil, fmt.Errorf("convert port fail")
+      }
+      continue
+    }
+
+
 
 		return nil, fmt.Errorf("unknown parameter '%s'", key)
 	}
@@ -207,8 +232,14 @@ func (this *BlockchainInterface) Client(params map[string]string, env, view []st
 		preparer = newSignatureTransactionPreparer(logger)
 	}
 
+  log.Print("poc:",poc_client_ip, poc_client_port)
+  poc_client, err = eth_poc_client.MakeClient(poc_client_ip, poc_client_port)
+  if( err != nil ){
+    return nil, err
+  }
+
 	manager = newStaticNonceManager(logger, client)
-	confirmer = newPollblkTransactionConfirmer(logger, client, ctx)
+	confirmer = newPollblkTransactionConfirmer(logger, client, poc_client, ctx)
 
 	return newClient(logger, client, manager, provider, preparer,
 		confirmer), nil

@@ -7,7 +7,11 @@ import (
 	"diablo-benchmark/core"
 	"math/big"
 	"sync"
+  "strconv"
+  "log"
+  "time"
 
+	"diablo-benchmark/blockchains/nethereum_poc/resdb_client/client"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -126,6 +130,7 @@ type transactionConfirmer interface {
 type pollblkTransactionConfirmer struct {
 	logger    core.Logger
 	client    *ethclient.Client
+	poc_client    *eth_poc_client.Client
 	ctx       context.Context
 	err       error
 	lock      sync.Mutex
@@ -137,11 +142,12 @@ type pollblkTransactionConfirmerPending struct {
 	iact     core.Interaction
 }
 
-func newPollblkTransactionConfirmer(logger core.Logger, client *ethclient.Client, ctx context.Context) *pollblkTransactionConfirmer {
+func newPollblkTransactionConfirmer(logger core.Logger, client *ethclient.Client, poc_client *eth_poc_client.Client, ctx context.Context) *pollblkTransactionConfirmer {
 	var this pollblkTransactionConfirmer
 
 	this.logger = logger
 	this.client = client
+	this.poc_client = poc_client
 	this.ctx = ctx
 	this.err = nil
 	this.pendings = make(map[string]*pollblkTransactionConfirmerPending)
@@ -255,9 +261,12 @@ func (this *pollblkTransactionConfirmer) processBlock(number *big.Int) error {
 	var stxs []*types.Transaction
 	var stx *types.Transaction
 	var block *types.Block
+  var uuids []uint64
 	var hashes []string
+	var resp_list map[uint64]int32
 	var err error
 	var i int
+  var num_int int
 
 	this.logger.Tracef("poll new block (number = %d)", number)
 
@@ -265,6 +274,20 @@ func (this *pollblkTransactionConfirmer) processBlock(number *big.Int) error {
 	if err != nil {
 		return err
 	}
+
+
+  num_int, _ = strconv.Atoi(number.String())
+
+  uuids = make([]uint64,1)
+  uuids[0] = uint64(num_int)
+  inloop :  for {
+      resp_list, _ = this.poc_client.WaitUids(uuids)
+      log.Print("uuid :",uuids," resp:",resp_list)
+      if len(resp_list) > 0 {
+          break inloop
+      }
+      time.Sleep(time.Second)
+  }
 
 	stxs = block.Transactions()
 	hashes = make([]string, len(stxs))

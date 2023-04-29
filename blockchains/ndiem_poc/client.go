@@ -296,10 +296,11 @@ func (this *pollblkTransactionConfirmer) parseTransaction(tx *diemjsonrpctypes.T
 	this.lock.Unlock()
 
 	if !ok {
-    log.Print("txn not exist")
+    log.Print("txn not exist", tx.Version)
 		return
 	}
 
+  log.Print("commit :",tx.Version)
 	pending.iact.ReportCommit()
 
 	this.logger.Tracef("transaction %s committed",
@@ -347,23 +348,27 @@ func (this *pollblkTransactionConfirmer) run() {
 		version = meta.Version
 
 		for v < version {
-			v += 1
+      if(len(fail_list)<100){
+        v += 1
 
-			txs, err = this.client.GetTransactions(v, 100, true)
-			if err != nil {
-				continue
-			}
+          txs, err = this.client.GetTransactions(v, 100, true)
+          if err != nil {
+            continue
+          }
 
-      //log.Print("get txn:",len(txs))
-      //log.Printf("fail list:",len(fail_list))
-      txs = append(txs, fail_list...)
-
+        //log.Print("get txn:",len(txs))
+        //log.Printf("fail list:",len(fail_list))
+        txs = append(txs, fail_list...)
+      } else {
+        txs = fail_list
+      }
       uid_list = make([]uint64, len(txs))
       idx := 0
 			for _, tx = range txs {
 				if tx.Transaction.Type != "user" {
 					continue
 				}
+        log.Print("get version:",tx.Version)
         uid_list[idx] = tx.Version
         idx=idx+1
       }
@@ -388,7 +393,7 @@ func (this *pollblkTransactionConfirmer) run() {
             continue
       }
 
-      log.Printf("get uid_lists:",len(uid_list), len(resp_list))
+      //log.Printf("get uid_lists:",len(uid_list), len(resp_list))
       fail_list = nil
 
 			for _, tx = range txs {
